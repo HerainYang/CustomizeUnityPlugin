@@ -1,0 +1,4 @@
+Put it in Assets/Editor, if don't have such directory, create one.
+Only support csv so far, supporting of xlsm, xls and so on might coming later (depend on needing XD).
+Modify "Constant.RawXMLPath" and "Constant.JsonRootPath" to change the default searching path of excel file and the default exporting path of json file.
+Implement the json type before using this plugin.
