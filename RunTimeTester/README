@@ -1,0 +1,1 @@
+Tester will display every component that implement IRunTimTesterExcutable interface, you should implement it to design which to display and to call.

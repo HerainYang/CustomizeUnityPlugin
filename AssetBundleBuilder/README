@@ -1,0 +1,3 @@
+AutoBundlerAdder will add resources into bundle, the bundle name is generated according to the name of the directory of those resources. A current known problem is that you cannot put file and directory cannot exist in the same folder, otherwise some error might occur (though I don't think it is a unavoidable problem by the user but I'll fix it later, maybe, sometime).
+
+AutoBundler is very simple, but there's a problem with the incremental build of unity build method, that is, if nothing is inside of a bundle after an update, unity wouldn't delete that bundle, it will just leave it there. So since your project implement autobuild using IncrementalBuildBundles, you still need to do TotallyReBuildAssetBundles sometime.

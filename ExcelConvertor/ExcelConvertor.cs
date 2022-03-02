@@ -5,11 +5,14 @@ using System.Linq;
 using System.Security;
 using System.Text.RegularExpressions;
 using System.Threading;
+using Editor.EditorTool;
 using Newtonsoft.Json;
 using Script;
 using UnityEditor;
+using UnityEditor.EditorTools;
 using UnityEditor.U2D.Path;
 using UnityEngine;
+using Object = System.Object;
 
 internal class ExcelInfo
 {
@@ -25,7 +28,7 @@ internal class ExcelInfo
             searchDirectory += '/';
         }
         this.SearchDirectory = searchDirectory;
-        ShortName = rawName.Replace(Constant.RawXMLPath + searchDirectory, "");
+        ShortName = rawName.Replace(Constant.FilePath.RawXMLPath + searchDirectory, "");
         ShortName = ShortName.Replace(".csv", "");
     }
 }
@@ -60,13 +63,16 @@ public class ExcelConvertor : EditorWindow
     [MenuItem("Tools/ExcelConvertor")]
     public static void ShowWindow()
     {
-        _thisWindow = EditorWindow.GetWindow(typeof(ExcelConvertor));
+        if (!_thisWindow)
+        {
+            _thisWindow = EditorWindow.GetWindow(typeof(ExcelConvertor));
+        }
+        
         _hightLightTextRowStyle.normal.textColor = Color.blue;
         _hightLightTextColumnStyle.normal.textColor = Color.red;
         _normalTextStyle.normal.textColor = Color.gray;
         _hightLightTextSelectedStyle.normal.textColor = Color.green;
     }
-    
     private void OnGUI()
     {
         if (_thisWindow == null)
@@ -82,13 +88,13 @@ public class ExcelConvertor : EditorWindow
             _suggestRow = (int)(_curHeight / _itemHeight);
         }
         EditorGUILayout.BeginHorizontal();//Top bar
-        EditorGUILayout.LabelField("Search In:" + Constant.RawXMLPath, GUILayout.MinWidth(50));
+        EditorGUILayout.LabelField("Search In:" + Constant.FilePath.RawXMLPath, GUILayout.MinWidth(50));
         _searchDirectory = EditorGUILayout.TextField(_searchDirectory, GUILayout.MinWidth(200));
 
         if (GUILayout.Button("Search", GUILayout.Width(60)))
         {
             _excelInfos = new List<ExcelInfo>();
-            foreach (var file in Directory.GetFiles(Constant.RawXMLPath + _searchDirectory))
+            foreach (var file in Directory.GetFiles(Constant.FilePath.RawXMLPath + _searchDirectory))
             {
                 ExcelInfo excelInfo = new ExcelInfo(file, _searchDirectory);
                 if(Regex.IsMatch(file, "^(?!.*\\.~).*(.csv)$"))
@@ -150,22 +156,22 @@ public class ExcelConvertor : EditorWindow
 
     private void GenerateAllToJson()
     {
-        if (Directory.Exists(Constant.JsonRootPath))
+        if (Directory.Exists(Constant.FilePath.JsonRootPath))
         {
-            Directory.Delete(Constant.JsonRootPath, true);
+            Directory.Delete(Constant.FilePath.JsonRootPath, true);
         }
         _totalThreadCount = 0;
         _successThreadCount = 0;
         Stack<string> directories = new Stack<string>();
         List<Thread> threads = new List<Thread>();
-        directories.Push(Constant.RawXMLPath);
+        directories.Push(Constant.FilePath.RawXMLPath);
         while (directories.Any())
         {
             string topDirectory = directories.Pop();
             string[] subFile = Directory.GetFiles(topDirectory);
             foreach (var file in subFile)
             {
-                string parentDirectoryPath = topDirectory.Replace(Constant.RawXMLPath, "");
+                string parentDirectoryPath = topDirectory.Replace(Constant.FilePath.RawXMLPath, "");
                 ExcelInfo excelInfo = new ExcelInfo(file, parentDirectoryPath);
                 if (Regex.IsMatch(file, "^(?!.*\\.~).*(.csv)$"))
                 {
@@ -202,13 +208,13 @@ public class ExcelConvertor : EditorWindow
     {
         if (tableData == null)
         {
-            Debug.LogError("No table is selected");
+            EditorHelper.LogError("No table is selected");
             return 0;
         }
 
         if (tableData.Count <= 2)
         {
-            Debug.LogError("Data incomplete:" + info.Path);
+            EditorHelper.LogError("Data incomplete:" + info.Path);
             return 0;
         }
 
@@ -218,13 +224,13 @@ public class ExcelConvertor : EditorWindow
         int tableRow = tableData.Count;
         int tableColumn = tableData[0].Count;
         
-        if (!Directory.Exists(Constant.JsonRootPath + info.SearchDirectory))
+        if (!Directory.Exists(Constant.FilePath.JsonRootPath + info.SearchDirectory))
         {
-            Directory.CreateDirectory(Constant.JsonRootPath + info.SearchDirectory);
+            Directory.CreateDirectory(Constant.FilePath.JsonRootPath + info.SearchDirectory);
         }
 
         using (StreamWriter writer =
-               new StreamWriter(Constant.JsonRootPath + info.SearchDirectory + "/" + info.ShortName +
+               new StreamWriter(Constant.FilePath.JsonRootPath + info.SearchDirectory + "/" + info.ShortName +
                                 ".json"))
         {
             writer.WriteLine("[");
@@ -262,7 +268,7 @@ public class ExcelConvertor : EditorWindow
             if (GenerateThisToJson(_tableData, _currentInfo) == 1)
             {
                 EditorUtility.DisplayDialog("Export Successful",
-                    _currentInfo.ShortName + ".json is now available in " + Constant.JsonRootPath +
+                    _currentInfo.ShortName + ".json is now available in " + Constant.FilePath.JsonRootPath +
                     _currentInfo.SearchDirectory, "OK");
             }
         }
@@ -340,7 +346,7 @@ public class ExcelConvertor : EditorWindow
     {
         if (!File.Exists(excelInfoPath))
         {
-            Debug.LogError("File not exists" + excelInfoPath);
+            EditorHelper.LogError("File not exists" + excelInfoPath);
             return null;
         }
         List<List<string>> dataTable = new List<List<string>>();
@@ -426,24 +432,24 @@ public class ExcelConvertor : EditorWindow
     }
     private void GenerateAllToCsFile()
     {
-        if (File.Exists(Constant.ConfigManagerFilePath))
+        if (File.Exists(Constant.FilePath.ConfigManagerFilePath))
         {
-            File.Delete(Constant.ConfigManagerFilePath);
+            File.Delete(Constant.FilePath.ConfigManagerFilePath);
         }
 
-        StreamWriter writer = new StreamWriter(Constant.ConfigManagerFilePath);
+        StreamWriter writer = new StreamWriter(Constant.FilePath.ConfigManagerFilePath);
         writer.WriteLine(Constant.ConfigManager.Head);
 
         Stack<string> directories = new Stack<string>();
         Dictionary<string, string> namepairs = new Dictionary<string, string>();
-        directories.Push(Constant.RawXMLPath);
+        directories.Push(Constant.FilePath.RawXMLPath);
         while (directories.Any())
         {
             string topDirectory = directories.Pop();
             string[] subFile = Directory.GetFiles(topDirectory);
             foreach (var file in subFile)
             {
-                string parentDirectoryPath = topDirectory.Replace(Constant.RawXMLPath, "");
+                string parentDirectoryPath = topDirectory.Replace(Constant.FilePath.RawXMLPath, "");
                 ExcelInfo excelInfo = new ExcelInfo(file, parentDirectoryPath);
                 if (Regex.IsMatch(file, "^(?!.*\\.~).*(.csv)$"))
                 {
@@ -453,7 +459,7 @@ public class ExcelConvertor : EditorWindow
         
                     if (dataTable.Count <= 2)
                     {
-                        Debug.LogError("Data incomplete:" + excelInfo.Path);
+                        EditorHelper.LogError("Data incomplete:" + excelInfo.Path);
                         continue;
                     }
                     
@@ -487,7 +493,7 @@ public class ExcelConvertor : EditorWindow
                         }
                         else
                         {
-                            Debug.LogError("Unknown type [" + AttributeType[i] + "] when generate CS file: " +
+                            EditorHelper.LogError("Unknown type [" + AttributeType[i] + "] when generate CS file: " +
                                            excelInfo.Path);
                         }
                     }
